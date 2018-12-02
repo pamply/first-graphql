@@ -4,6 +4,7 @@ var cors = require('cors');
 var { buildSchema } = require('graphql');
 var fakeDatabase = require('./database');
 
+// TYPE DEFINITIONS
 class RandomDie {
     constructor(numSides) {
         this.numSides = numSides;
@@ -30,10 +31,22 @@ class Message {
     }
 }
 
+// SCHEMA DEFINITION
 var schema = buildSchema(`
     input MessageInput {
         content: String
         author: String
+    }
+
+    input UserInput {
+        username: String
+        password: String
+        email: String
+    }
+
+    input LoginInput {
+        username: String
+        password: String
     }
 
     type Message {
@@ -42,7 +55,14 @@ var schema = buildSchema(`
         author: String
     }
 
+    type User {
+        username: String
+        password: String
+        email: String
+    }
+
     type Mutation {
+        createUser(input: UserInput): User
         createMessage(input: MessageInput): Message
         updateMessage(id: ID!, message: MessageInput): Message
     }
@@ -59,48 +79,77 @@ var schema = buildSchema(`
         random: Float!
         rollDice(numDice: Int, numSides: Int!): [Int]
         getDie(numSides: Int): RandomDie
+        getUser(input: LoginInput): User
     }
 `);
+ // ACTIONS
+const createUser = ({ input: { username, password, email } }) => {
+    fakeDatabase.users.push({
+        username,
+        password,
+        email
+    });
+    return fakeDatabase.users[fakeDatabase.users.length - 1];
+}
+
+const getUser = ({ input }) => {
+    return fakeDatabase.users.find(user => 
+        user.username === input.username.toLowerCase() 
+        && user.password === input.password.toLowerCase()
+    );
+}
+
+const createMessage = ({ input }) => {
+    const id = require('crypto').randomBytes(10).toString('hex');
+    fakeDatabase[id] = input;
+    return new Message(id, input);
+}
+const updateMessage = ({ id, input }) => {
+    if(!fakeDatabase[id]) {
+        throw new Error(`No message exists with id = ${id}`);
+    }
+    fakeDatabase[id] = input;
+    return new Message(id, input);
+}
+
+const getMessage = (id) => {
+    if(!fakeDatabase[id]) {
+        throw new Error(`No message exists with id = ${id}`);
+    }
+    return fakeDatabase[id];
+}
+
+const quoteOfTheDay = () => {
+    return Math.random() < 0.5 ? 'Take it easy' : 'Salvaton lies within';
+}
+
+const random = () => {
+    return Math.random();
+}
+
+const rollDice = ({ numDice,  numSides}) => {
+    var output = [];
+    for(let i = 0; i < numDice; i++) {
+        output.push(Math.floor(Math.random() * (numSides || 6)) + 1)
+    }
+    return output;
+}
+
+const getDie = ({ numSides }) => {
+    return new RandomDie(numSides || 6);
+}
 
 // The root provides a resolver function for each API endpoint
 var root = {
-    
-    createMessage: ({ input }) => {
-        const id = require('crypto').randomBytes(10).toString('hex');
-        fakeDatabase[id] = input;
-        return new Message(id, input);
-    },
-
-    updateMessage: ({ id, input }) => {
-        if(!fakeDatabase[id]) {
-            throw new Error(`No message exists with id = ${id}`);
-        }
-        fakeDatabase[id] = input;
-        return new Message(id, input);
-    },
-
-    getMessage: (id) => {
-        if(!fakeDatabase[id]) {
-            throw new Error(`No message exists with id = ${id}`);
-        }
-        return fakeDatabase[id];
-    },
-    quoteOfTheDay: () => {
-        return Math.random() < 0.5 ? 'Take it easy' : 'Salvaton lies within';
-    },
-    random: () => {
-        return Math.random();
-    },
-    rollDice: ({ numDice,  numSides}) => {
-        var output = [];
-        for(let i = 0; i < numDice; i++) {
-            output.push(Math.floor(Math.random() * (numSides || 6)) + 1)
-        }
-        return output;
-    },
-    getDie: ({ numSides }) => {
-        return new RandomDie(numSides || 6);
-    }
+    createUser,
+    getUser,
+    createMessage,
+    updateMessage,
+    getMessage,
+    quoteOfTheDay,
+    random,
+    rollDice,
+    getDie
 }
 
 var app = express({
