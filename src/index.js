@@ -4,6 +4,12 @@ var cors = require('cors');
 var { buildSchema } = require('graphql');
 var fakeDatabase = require('./database');
 
+var options = require('./config-options');
+// // var clientNodeGet = require('./client-node-get');
+var clientNodeRequest = require('./client-node-request');
+// var urlWithApi = require('./config-with-api');
+// var call = require('./client-wreck');
+
 // TYPE DEFINITIONS
 class RandomDie {
     constructor(numSides) {
@@ -74,6 +80,8 @@ var schema = buildSchema(`
     }
 
     type Query {
+        callMethod1: String,
+        callMethod2: String,
         getMessage(id: ID!): Message
         quoteOfTheDay: String
         random: Float!
@@ -82,8 +90,26 @@ var schema = buildSchema(`
         getUser(input: LoginInput): User
     }
 `);
+
  // ACTIONS
+const callMethod1 = () => {
+    // clientNodeGet(options);
+    // call(urlWithApi);
+    clientNodeRequest(options);
+    return "callMethod1";
+}
+
+const callMethod2 = () => {
+    // clientNodeGet(options);
+    // call(urlWithApi);
+    clientNodeRequest(options);
+    return "callMethod2";
+}
+
 const createUser = ({ input: { username, password, email } }) => {
+    
+    // clientNodeGet(options);
+
     fakeDatabase.users.push({
         username,
         password,
@@ -141,6 +167,8 @@ const getDie = ({ numSides }) => {
 
 // The root provides a resolver function for each API endpoint
 var root = {
+    callMethod1,
+    callMethod2,
     createUser,
     getUser,
     createMessage,
